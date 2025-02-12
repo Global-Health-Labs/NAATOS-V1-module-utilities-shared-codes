@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-import naatos_paths
+import naatos_module_tools.naatos_paths as naatos_paths
 
 
 CFG_PATH_TEAMS_BETA_SAMPLEPREPTESTDATA = naatos_paths.CFG_PATH_TEAMS_BETA_SAMPLEPREPTESTDATA;

@@ -1,5 +1,5 @@
 import subprocess
-import naatos_paths
+import naatos_module_tools.naatos_paths as naatos_paths
 import serial.tools.list_ports
 
 

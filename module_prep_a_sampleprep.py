@@ -25,7 +25,7 @@ import wmi
 import subprocess
 import shutil
 
-import naatos_paths
+import naatos_module_tools.naatos_paths as naatos_paths
 
 import naatos_module_tools.usb_file_utils
 import naatos_module_tools.nrf_dfu_utils
