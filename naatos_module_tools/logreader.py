@@ -128,6 +128,9 @@ def scanAUnitFolder(unitfolder):
 
     #open each logfile and import into Pandas df
     folders = [ name for name in os.listdir(unitfolder) if os.path.isdir(os.path.join(unitfolder, name)) ]
+    #drop any folders named "_ignore"
+    if('_ignore' in folders):
+        folders.remove('_ignore');
     print(folders);
 
     if( ('config' in folders) and ('logs' in folders)):
