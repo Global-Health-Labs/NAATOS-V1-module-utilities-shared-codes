@@ -31,6 +31,28 @@ def run_nrfutil_batch_and_wait(DFU_COMPORT):
         , shell=True
     )
 
+def run_nrfutil_batch_return_process(DFU_COMPORT):
+    """Launches the uploadImage.bat file and passes as argument the com port
+
+    Args:
+        DFU_COMPORT (str): COM port (e.g., "COM4")
+    """    
+
+    # get comport
+    #CFG_DFU_COMPORT = loop_until_dfu_comport_found();
+    # There is not enough time to do this!!!
+    # By the time we launch the below .bat file the com port dissapeared :-(
+
+    ret = subprocess.Popen(
+        #["start", "cmd", "/k", CFG_NRF_UTILS_BATCH_FOLDER+'\\uploadImage.bat'],
+        # /k - This option tells the command prompt to keep running after the batch file finishes
+        # /c - Carries out the command specified by string and then terminates
+        ["start", "/wait", "cmd", "/c", CFG_NRF_UTILS_BATCH_FOLDER+'\\uploadImage.bat',DFU_COMPORT],
+        cwd=CFG_NRF_UTILS_BATCH_FOLDER
+        , shell=True
+    )
+    return ret;
+
 def loop_until_dfu_comport_found():
     print('Waiting (infinite loop) for a comport that has description "nRF52 SDFU USB" ...');
     while True:
