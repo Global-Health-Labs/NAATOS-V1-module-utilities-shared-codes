@@ -74,32 +74,44 @@ class NAATOS_MODULE_CONTROLLER:
         sercdc = self._sercdc;
 
         # query for status
+        sercdc.flush(); # eliminate everything in read buffer
         sercdc.write(b'STATUS,\n');
         time.sleep(0.05);
         rxdata = sercdc.read_all();
 
         #% parse rx
-        # 
-        rxlines = rxdata.decode().strip().splitlines()
-        # pick last line, see if it's what we expect
-        s = rxlines[-1].rpartition(' - ')[-1];
-        print(s)
+        rxlines = [l for l in rxdata.decode().strip().splitlines() if l != ''] # skip blank lines
+        #print(rxlines)
+        #print([l.find('=') for l in rxlines])
+        # pick lines which contain an '=' sign
+        rxlines_sel = [l for l in rxlines if l.find('=')>0]
+        print(rxlines_sel)
 
-        # split with space
         status_data = {};
-        s2 = s.split(' ')
-        for s3 in s2:
-            s4 = s3.split('=');
-            if(len(s4)==2):
-                key = s4[0];
-                val = s4[1];
-                val = val.replace('\"','')
+        for s in rxlines_sel:
+            #print('s',s)
+            # split with space
+            s2 = s.split(' ')
+            #print('s2',s2[2:])
+            for s3 in s2[2:]:
+                #print('s3',s3)
+                s4 = s3.split('=');
+                #print('s4',s4)
+                if(len(s4)==2):
+                    key = s4[0];
+                    val = s4[1];
+                    val = val.replace('\"','');
 
-                status_data[key] = val;
-            else:
-                # special handling for the space in the "ts" field
-                val = s4[0].replace('\"','');
-                status_data['TS']+=' '+val;
+                    status_data[key] = val;
+                elif(s.find('TS')>=0):
+                    # special handling for the space in the "ts" field
+                    val = s4[0].replace('\"','');
+                    #print('val',val);
+
+                    status_data['TS']+=' '+val;
+                else:
+                    #print("Hello i'm here!");
+                    pass;
         self.status_data = status_data;
         return status_data;
 

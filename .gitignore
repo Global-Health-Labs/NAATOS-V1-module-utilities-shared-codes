@@ -6,3 +6,5 @@ __pycache__/
 # Results outputs in same folder
 *.html
 thumbspage/
+nrfutil.exe
+naatos_dfu_package.zip
