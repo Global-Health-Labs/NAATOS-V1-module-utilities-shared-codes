@@ -3,6 +3,7 @@ from gooey import Gooey, GooeyParser
 import time
 import tkinter.simpledialog
 from pathlib import Path
+import os
 
 #%%
 # import wx
@@ -26,6 +27,7 @@ devicectl = naatos_module_tools.device_control.NAATOS_MODULE_CONTROLLER();
 #%% globals
 pre_status = None;
 unitid = None;
+PC_USERNAME = os.environ.get('USER', os.environ.get('USERNAME'));
 
 #%%
 def do_part1(args=None):
@@ -169,7 +171,16 @@ def do_part4(args=None):
 def do_stuff(args=None):
     print('ARGS:')
     print(args)
-    return;
+    #return;
+
+    # verify uploadImage.bat exists
+    #if(args.fw_path)
+    if(args.doPart3FW):
+        if((Path('').absolute()/'uploadImage.bat').exists()):
+            print('found uploadImage.bat');
+        else:
+            #print('need uploadImage.bat in fw folder');
+            raise RuntimeError('need uploadImage.bat in fw folder')
 
     # STEP 0 - waiting for device to be plugged in
     print('-----------------------------------------')
@@ -183,7 +194,7 @@ def do_stuff(args=None):
     #devicectl.closecdc();
 
     # STEP 2 - COPY EXISTING FILES
-    if args.doPart2download:
+    if args.doPart2Download:
         # should already be opened
         #devicectl.opencdc(keep_waiting=False); # will hold forever
 
@@ -194,7 +205,7 @@ def do_stuff(args=None):
         #devicectl.closecdc();
 
     # STEP 3 - FIRMWARE UPDATE
-    if args.doPart3fw:
+    if args.doPart3FW:
         # should already be opened
         #devicectl.opencdc(keep_waiting=False); # will hold forever
 
@@ -253,9 +264,9 @@ def main():
         "--id-silent",
         metavar="Silent",
         help="Do not ask for device id if it was previously known",
-        widget="CheckBox",
-        action="store_true",
-        default=True,
+        widget="BlockCheckbox",
+        gooey_options=dict(checkbox_label='Auto accept confirmed ID'),
+        default=True,  action="store_false"
         #default=True,  
     );
 
@@ -263,54 +274,73 @@ def main():
     #-- group 2 - download existing data from the device
     group2 = parser.add_argument_group("Step 2. Download / save existing data on the device",
         gooey_options={
-                'columns': 3
+                #'columns': 3,
+                #'show_border':True
             }
     );
     group2.add_argument(
-        "--doPart2download",
+        "--doPart2Download",
         metavar="ENABLE",
         help="If checked this step will download all from filesystem.",
         widget="CheckBox",
-        action="store_true",
+        default=True,  action="store_false"
     );
-    group2.add_argument(
+    group2b = group2.add_argument_group("Options",
+        gooey_options={
+                'columns': 2,
+                'show_border':True
+            }
+    );
+    group2b.add_argument(
         "--datadl-expname",
         metavar="Experiment Name",
         help="Name of the experiment. This will become a subfolder in the root folder below.",
         #widget="CheckBox",
         #action="store_false",
         #default=True,  
-        default=time.strftime('%Y%m%d_autodownload'),
+        default=time.strftime('%Y%m%d_{:s}_autodl'.format(PC_USERNAME)),
     );
-    group2.add_argument(
+    group2b.add_argument(
         "--datadl-deleteafter",
         metavar="Delete log files after",
         help="If checked this step will delete logfiles from device after ensureing they've been downloaded",
         widget="CheckBox",
         action="store_true",
     );
-    group2.add_argument(
+    group2b.add_argument(
         "--datadl-path",
         metavar="Data Dest Root Path",
         help="Choose root folder where you will download the data. Subfolder with unit-name will contain the data. Folders (and parents) will automatically be created if they do not exist.",
         widget="DirChooser",
+        gooey_options={
+                    'full_width': True
+                },
         default=r'C:\TEMP\NAATOS_MODULE_AUTODOWNLOADS'
     );
 
     #-- group 3 - firmware update
     group3 = parser.add_argument_group("Step 3. Firmware Update")
     group3.add_argument(
-        "--doPart3fw",
+        "--doPart3FW",
         metavar="ENABLE",
         help="If checked, this step will update the firmware on the device.",
         widget="CheckBox",
         action="store_true",
     );
-    group3.add_argument(
+    group3b = group3.add_argument_group("Options",
+        gooey_options={
+                'columns': 2,
+                'show_border':True
+            }
+    );
+    group3b.add_argument(
         "--fw-path",
         metavar="FW Path",
-        help="Choose a folder where the firmware you want to flash is at.",
+        help="Choose a folder where the firmware you want to flash is at. If this is blank, it will be calling uploadImage.bat in the current folder.",
         widget="DirChooser",
+        gooey_options={
+                    'full_width': True
+                },
     );
 
     #-- group 4 - other device actions
@@ -322,13 +352,19 @@ def main():
         choices=['no', 'localtime','zulutime (not implemented)'],
         default='localtime',  
     )
+    # group4a = group4.add_mutually_exclusive_group()
+    # group4a.add_argument('--verbozze', dest='verbose',
+    #                        action="store_true", help="Show more details")
+    # group4a.add_argument('--set-rtc-list', dest='quiet',
+    #                        action="store_true", help="Only output on error")
     group4.add_argument(
         "--device-reformat",
         metavar="4b. Reformat",
         help="Reformat filesystem (config will default, logs will be purged)",
-        widget="CheckBox",
+        widget="BlockCheckbox",
+        gooey_options=dict(checkbox_label='Reformat'),
         action="store_true",
-        default=False,
+        #default=False,
     );
 
     #-- group 5 - copy a customized config to the device
@@ -347,8 +383,10 @@ def main():
     
     args = parser.parse_args()
 
-
-    
+    # checkbox workaround; negative the ones that default to "checked"
+    # https://github.com/chriskiehl/Gooey/issues/148
+    args.id_silent = not args.id_silent;
+    args.doPart2Download = not args.doPart2Download;
 
     do_stuff(args)
 

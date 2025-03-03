@@ -278,8 +278,10 @@ def processRootFolder(
         experiments_to_plot = [ '20250123_3.0_ghlhack_1b']
         ):
     print('Processing rootfolder',rootpath);
+    dfs_collected = [];
     for exp in experiments_to_plot:
         print('Experiment',exp);
         
         dfraw = processADirectory( dirpath=(rootpath/exp).as_posix() );
-    return dfraw;
+        dfs_collected.append(dfraw);
+    return pd.concat(dfs_collected);
