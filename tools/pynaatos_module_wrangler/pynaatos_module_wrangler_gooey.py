@@ -152,6 +152,7 @@ def do_part4(args=None):
         if(args.device_set_time=='localtime'):
             print('Setting to localtime')
             devicectl.setClock();
+            time.sleep(0.1);
         else:
             print('Could not set to',args.device_set_time);
     else:
@@ -162,6 +163,7 @@ def do_part4(args=None):
         print('-------------------------------')
         print('STARTING PART 4b: Reformat');
         print('-------------------------------')
+        time.sleep(0.1);
         print('Sending reformat command to device...')
         devicectl.mode_reformat();
     else:

@@ -128,7 +128,7 @@ class NAATOS_MODULE_CONTROLLER:
         if 'Readback time' not in rxdata.decode():
             print('COULD NOT SET TIME')
 
-    def _transition_modes(self,command='TOMSC'):
+    def _transition_modes(self,command='TOMSC',keep_readinglines_until_rx=None):
         #% TOMSC,EXITMSC,REFORMAT
         sercdc = self._sercdc;
 
@@ -136,9 +136,21 @@ class NAATOS_MODULE_CONTROLLER:
         sercdc.write(command.encode()+b',');
 
         #sercdc.write(b'{:s},'.format(command));
-        time.sleep(0.01);
-        rxdata = sercdc.read_all();
-        print(rxdata.decode())
+        #boolContinue = True if keep_readinglines_until_rx is None else keep_readinglines_until_rx;
+        #while(boolContinue)
+        while(True):
+            time.sleep(0.05);
+            rxdata = sercdc.read_all();
+            rxdecoded = rxdata.decode();
+            if(rxdecoded !=''):
+                print(rxdecoded.strip());
+            if(keep_readinglines_until_rx is not None):
+                if(rxdecoded.find(keep_readinglines_until_rx)>=0):
+                    break;
+                else:
+                    continue;
+            else:
+                break;
 
         # wait for COM available
         while(True):
@@ -163,7 +175,7 @@ class NAATOS_MODULE_CONTROLLER:
         self._transition_modes('EXITMSC');
 
     def mode_reformat(self):
-        self._transition_modes('REFORMAT');
+        self._transition_modes('REFORMAT','SUCCESS');
 
     def dfu_fw_update(self):
         import serial.tools.list_ports
