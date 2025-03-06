@@ -138,11 +138,11 @@ def do_part2(args=None):
     time.sleep(1);
     devicectl.mode_exitmsc();
 
-def do_part3(args=None):
+def do_part3(args=None,fw_path=''):
     print('-------------------------------')
     print('STARTING PART 3: Firmware Update');
     print('-------------------------------')
-    devicectl.dfu_fw_update();
+    devicectl.dfu_fw_update(workingdir=fw_path.as_posix());
 
 def do_part4(args=None):
     if(args.device_set_time != 'no'):
@@ -166,6 +166,9 @@ def do_part4(args=None):
         time.sleep(0.1);
         print('Sending reformat command to device...')
         devicectl.mode_reformat();
+        time.sleep(1.0);
+        # print('Sending reformat command to device... a second time (workaround for V3.2rc4 problem)')
+        # devicectl.mode_reformat();
     else:
         print('')
 
@@ -177,8 +180,11 @@ def do_stuff(args=None):
 
     # verify uploadImage.bat exists
     #if(args.fw_path)
+    fw_path = Path('');
+    if(args.fw_path) is not None:
+        fw_path = Path(args.fw_path);
     if(args.doPart3FW):
-        if((Path('').absolute()/'uploadImage.bat').exists()):
+        if((fw_path.absolute()/'uploadImage.bat').exists()):
             print('found uploadImage.bat');
         else:
             #print('need uploadImage.bat in fw folder');
@@ -211,7 +217,7 @@ def do_stuff(args=None):
         # should already be opened
         #devicectl.opencdc(keep_waiting=False); # will hold forever
 
-        do_part3(args);
+        do_part3(args,fw_path);
     else:
         print('-----------------------------------------')
         print('SKIPPING PART3 ...')
@@ -252,7 +258,7 @@ def do_stuff(args=None):
     #print("All done!")
 
 @Gooey(
-    program_name="NAATOS Module Device Wrangler V0.1",
+    program_name="NAATOS Module Device Wrangler V0.2",
     program_description="A tool to do any or all of the following: automatically identify, download data, update firmware, and/or set device settings.",
     default_size=(700, 800),
 )
@@ -338,7 +344,8 @@ def main():
     group3b.add_argument(
         "--fw-path",
         metavar="FW Path",
-        help="Choose a folder where the firmware you want to flash is at. If this is blank, it will be calling uploadImage.bat in the current folder.",
+        help="""Choose a folder where the firmware you want to flash is at.
+If this is blank, it will be calling uploadImage.bat in the current folder (current folder is {:s}).""".format(Path().absolute().as_posix()),
         widget="DirChooser",
         gooey_options={
                     'full_width': True

@@ -36,7 +36,12 @@ class NAATOS_MODULE_CONTROLLER:
         if(portinfo is not None):
             print('Found',portinfo.hwid);
         time.sleep(0.25);
-        self._sercdc = serial.Serial(comportserial,115200,timeout=1);
+        try:
+            self._sercdc = serial.Serial(comportserial,115200,timeout=1);
+        except serial.SerialException as e:
+            print('Did you forget to close this serial port ({:s}) in another program?'.format(comportserial));
+            raise(e);
+
     def closecdc(self):
         if(self._sercdc is not None):
             print('Closing port');
@@ -121,12 +126,33 @@ class NAATOS_MODULE_CONTROLLER:
         cmdstr = time.strftime('SETCLK,%Y-%m-%d %H:%M:%S\n');
         # send command
         sercdc.write(cmdstr.encode());
-        time.sleep(0.1);
-        rxdata = sercdc.read_all();
+        time.sleep(0.25);
+        # read
+        lines = [];
+        keep_readinglines_until_rx = 'Readback time';
+        while(True):
+            time.sleep(0.05);
+            try:
+                rxdata = sercdc.read_all();
+            except serial.SerialException as e:
+                print('Serial port dissapeared before we could read it! That is fine here...')
+                break;
+
+            rxdecoded = rxdata.decode();
+            if(rxdecoded !=''):
+                print(rxdecoded.strip());
+                lines+=rxdecoded.splitlines();
+            if(keep_readinglines_until_rx is not None):
+                if(rxdecoded.find(keep_readinglines_until_rx)>=0):
+                    break;
+                else:
+                    continue;
+            else:
+                break;
         # check we got a reception of "Readback time"
-        print(rxdata.decode().splitlines()[-2])
-        if 'Readback time' not in rxdata.decode():
-            print('COULD NOT SET TIME')
+        # print(rxdata.decode().splitlines()[-2])
+        # if 'Readback time' not in rxdata.decode():
+        #     print('COULD NOT SET TIME')
 
     def _transition_modes(self,command='TOMSC',keep_readinglines_until_rx=None):
         #% TOMSC,EXITMSC,REFORMAT
@@ -140,7 +166,12 @@ class NAATOS_MODULE_CONTROLLER:
         #while(boolContinue)
         while(True):
             time.sleep(0.05);
-            rxdata = sercdc.read_all();
+            try:
+                rxdata = sercdc.read_all();
+            except serial.SerialException as e:
+                print('Serial port dissapeared before we could read it! That is fine here...')
+                break;
+
             rxdecoded = rxdata.decode();
             if(rxdecoded !=''):
                 print(rxdecoded.strip());
@@ -177,7 +208,7 @@ class NAATOS_MODULE_CONTROLLER:
     def mode_reformat(self):
         self._transition_modes('REFORMAT','SUCCESS');
 
-    def dfu_fw_update(self):
+    def dfu_fw_update(self,workingdir=None):
         import serial.tools.list_ports
 
         sercdc = self._sercdc;
@@ -218,10 +249,10 @@ class NAATOS_MODULE_CONTROLLER:
             # /k - This option tells the command prompt to keep running after the batch file finishes
             # /c - Carries out the command specified by string and then terminates
             ["start", "/wait", "cmd", "/c", 'uploadImage.bat',dfudev],
-            #cwd=CFG_NRF_UTILS_BATCH_FOLDER
+            cwd=workingdir,
             shell=True
         )
-        time.sleep(5);
+        time.sleep(4);
 
         # find and re-open the USBCDC port
         print('Waiting to re-open USB CDC port...')
@@ -247,4 +278,5 @@ class NAATOS_MODULE_CONTROLLER:
         # find and re-open the USBCDC port
         print('Waiting for USB CDC port... (this may take a bit after fw update)')
         self.opencdc(keep_waiting=True);
+        time.sleep(0.1);
         sercdc = self._sercdc;
