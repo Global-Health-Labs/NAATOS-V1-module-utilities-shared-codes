@@ -244,15 +244,29 @@ class NAATOS_MODULE_CONTROLLER:
 
         # Launch uploadImage.bat script in background
         print('Launching uploadImage.bat...')
+        # phandle = subprocess.Popen(
+        #     #["start", "cmd", "/k", CFG_NRF_UTILS_BATCH_FOLDER+'\\uploadImage.bat'],
+        #     # /k - This option tells the command prompt to keep running after the batch file finishes
+        #     # /c - Carries out the command specified by string and then terminates
+        #     ["start", "/wait", "cmd", "/c", 'uploadImage.bat',dfudev],
+        #     cwd=workingdir,
+        #     shell=True
+        # )
+        # lots of nuance with start and cmd and return codes
+        # https://stackoverflow.com/questions/50315227/cannot-get-exit-code-when-running-subprocesses-in-python-using-popen-and-start
+        # this below seems to work
         phandle = subprocess.Popen(
-            #["start", "cmd", "/k", CFG_NRF_UTILS_BATCH_FOLDER+'\\uploadImage.bat'],
+            # CMD options
             # /k - This option tells the command prompt to keep running after the batch file finishes
             # /c - Carries out the command specified by string and then terminates
-            ["start", "/wait", "cmd", "/c", 'uploadImage.bat',dfudev],
+            #["start", "/wait", "cmd", "/c", 'uploadImage.bat',dfudev],
+            ['cmd','/c','uploadImage.bat',dfudev],
             cwd=workingdir,
-            shell=True
+            creationflags=subprocess.CREATE_NEW_CONSOLE,    # so we can see the shell terminal window
+            shell=False
         )
-        time.sleep(4);
+        print('command launched. Delaying slightly for 5seconds...')
+        for i in range(5,0,-1):    print(i);time.sleep(1);
 
         # find and re-open the USBCDC port
         print('Waiting to re-open USB CDC port...')
@@ -260,7 +274,7 @@ class NAATOS_MODULE_CONTROLLER:
         sercdc = self._sercdc;
         sercdc.flush();
 
-        # SEND TODFU AGAIN, this time immediately launch uploadImage script
+        # SEND TODFU AGAIN, this time uploadImage nrfutil script should be running in background
         # send command
         print('Sending TODFU to device...')
         time.sleep(0.5);
@@ -272,8 +286,15 @@ class NAATOS_MODULE_CONTROLLER:
 
         # WAIT For nrfutil to end
         print('Waiting for uploadImage.bat to complete...')
-        while(phandle.poll() is None):
-            time.sleep(0.1);
+        retcode = phandle.wait();
+        print('DFU update script returned',retcode);
+        if(retcode==0):
+            # success
+            pass;
+        else:
+            print('DFU update did not succeed!! Abort our entire script here...')
+            raise RuntimeError("DFU update did not succeed!! Firmware not updated.")
+
 
         # find and re-open the USBCDC port
         print('Waiting for USB CDC port... (this may take a bit after fw update)')

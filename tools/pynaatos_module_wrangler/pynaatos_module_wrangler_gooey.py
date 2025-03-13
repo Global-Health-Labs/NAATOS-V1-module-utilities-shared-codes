@@ -258,7 +258,7 @@ def do_stuff(args=None):
     #print("All done!")
 
 @Gooey(
-    program_name="NAATOS Module Device Wrangler V0.2",
+    program_name="NAATOS Module Device Wrangler V0.3",
     program_description="A tool to do any or all of the following: automatically identify, download data, update firmware, and/or set device settings.",
     default_size=(700, 800),
 )
