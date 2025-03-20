@@ -7,7 +7,7 @@ from serial import Serial
 import time
 
 #some settings
-port = 'COM28'
+defaultport = 'COM28'
 baud = 9600
 maxWaitTime = 0.1 #this is in seconds and I will play around with it
 
@@ -25,7 +25,23 @@ class VXM(object):
     _gotcarrot = False;
 
     #initialize our stage
-    def __init__(self, port=port, baud=baud, maxWaitTime=maxWaitTime):
+    @staticmethod
+    def _find_com_port():
+        import serial.tools.list_ports
+        ports = serial.tools.list_ports.comports()
+
+        foundport = defaultport;
+        for port in ports:
+            if(port.hwid.find('VID:PID=0403:6001')>=0 and
+            port.hwid.find('SER=AH03HAPRA')>=0
+            ):
+                print('Found the GHL Velmex USB->RS232 adapter [{:s}] on {:s}'.format(port.hwid,port.name))
+                foundport = port.name;
+                break;
+        return foundport;
+    def __init__(self, port=None, baud=baud, maxWaitTime=maxWaitTime):
+        if(port is None):
+            port = self._find_com_port();
         self._port = Serial(port=port,baudrate=baud,timeout=maxWaitTime)
         print('Initializing VXM on port: %s' %(port))
         #set default motor speeds: The manual says 2000 steps/second is good

@@ -1,0 +1,73 @@
+# CONDA PYTHON ENVIRONMENT FILE
+# 
+# USAGE - create
+#   conda env create --name OCT_naatos --file environment.yml
+# USAGE - update
+#   conda env update --name OCT_naatos --file environment.yml --prune
+
+name: OCT_naatos
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip
+  - python=3.11   # 2025-03-20 restriction based on Thorlabs documentation for working with their libraries
+  - console_shortcut # place shortcut in windows startmenu
+
+  # dev tools: vscode/jupyter handiness
+  - ipykernel
+
+  # hardware interaction (velmex stepper control)
+  - pyserial
+  
+  # # std data manip
+  # - pandas
+  # - numpy
+  # - xarray #n-dim-labeled arrays (pandas for n-d arrays)
+  # - openpyxl # load excel files from pandas
+  # - pytables
+  # - scipy # for numerical integration
+
+  # # instrument control
+  # - pyvisa      # visa accessing
+  # - pyvisa-py   # visa implementation
+  
+  # # other for specific purposes
+  # #- pycparser # for parsing .c files
+  # #- pexpect  # for controlling shell commands/programs
+  # #- sarge     # for controlling shell commands/programs
+
+  # # for parallel processing from jupyter notebook
+  # # - dask
+
+  
+  # # image processing
+  # # - opencv
+  # # - colour-science
+  # # - imageio
+  # # - scipy
+  # # - ffmpeg # for the binary
+
+  # # interactive visuals
+  # - panel
+  # - holoviews
+  # - plotly
+  # - hvplot
+
+  # for notebook-style helper
+  #- jupyter_bokeh
+  #- nbformat
+  - nbconvert
+
+  # - pip:
+  #   # - pure-python-adb             # access adb server
+  #   # - colour-checker-detection    # part of colour-science, for segmentation
+  #   # - yuvio                       # parse yuv bitstreams as arrays
+  #   - easy_scpi                   # instrument control
+  #   # - https://github.com/SengerM/TeledyneLeCroyPy
+  #   - lecroyscope
+  #   - tekinstr
+
+  #   - wmi     # for windows-based automation to help setup the devices
+
+    
