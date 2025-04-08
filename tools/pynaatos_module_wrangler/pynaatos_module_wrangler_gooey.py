@@ -258,7 +258,7 @@ def do_stuff(args=None):
     #print("All done!")
 
 @Gooey(
-    program_name="NAATOS Module Device Wrangler V0.3",
+    program_name="NAATOS Module Device Wrangler V0.4",
     program_description="A tool to do any or all of the following: automatically identify, download data, update firmware, and/or set device settings.",
     default_size=(700, 800),
 )
@@ -385,6 +385,16 @@ If this is blank, it will be calling uploadImage.bat in the current folder (curr
         widget="CheckBox",
         action="store_false",
         default=False
+    );
+
+    #-- group 6 - copy a customized config to the device
+    group6 = parser.add_argument_group("Step 6. Other program actions")
+    group6.add_argument(
+        "--loop",
+        metavar="Loop (NOT IMPLEMENTED YET)",
+        help="When program completes successfully, it will wait for a new device.",
+        widget="CheckBox",
+        action="store_true"
     );
 
 

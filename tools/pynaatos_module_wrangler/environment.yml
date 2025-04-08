@@ -57,9 +57,10 @@ dependencies:
   # - plotly
   # - hvplot
 
-  # # for notebook-style helper
-  # - jupyter_bokeh
-  # - nbformat
+  # for notebook-style helper
+  #- jupyter_bokeh
+  #- nbformat
+  - nbconvert
 
   # - pip:
   #   # - pure-python-adb             # access adb server
