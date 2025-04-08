@@ -13,6 +13,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
+badfolders = ['_ignore','archive'];
+
 def get_sec(time_str):
     """Get seconds from time."""
     h, m, s = time_str.split(':')
@@ -57,8 +59,12 @@ def as_timestamp_with_quirks(time_str):
     return pd.Timestamp(time_str);
 
 def scanALogfile(filepath, unit='nounit', expname='noexp'):
-    file = os.path.basename(filepath);
-    df_in = pd.read_csv(filepath)
+    file = os.path.basename(filepath); 
+    if( os.path.getsize(filepath) == 0 ):
+        print('File',file,'had zero-size! Ignoring')
+        return (None,None);
+
+    df_in = pd.read_csv(filepath);
 
     #df_in['Time'] = df_in['Time'].str.replace('2000-00','2000-01');
     #df_in['Time'] = df_in['Time'].apply(lambda x: pd.Timestamp(x))
@@ -66,13 +72,23 @@ def scanALogfile(filepath, unit='nounit', expname='noexp'):
 
     # bad times????
     # report rows with NaN for time (quirks that we will deem unusable for now)
-    #df_in.dropna()
     n_bad_rows = df_in[ df_in['Time'].isna() ].shape[0];
+    # if(n_bad_rows>0):
+    #     print('file',file,'had {:d} rows with bad times that we are ignoring'.format( n_bad_rows ) )
+    # #drop rows with NaN for time (seems to occur at start of logfile)
+    # df_in = df_in[ df_in['Time'].notna() ]
     if(n_bad_rows>0):
-        print('file',file,'had {:d} rows with bad times that we are ignoring'.format( n_bad_rows ) )
-
-    #drop rows with NaN for time (seems to occur at start of logfile)
-    df_in = df_in[ df_in['Time'].notna() ]
+        print('file',file,'had {:d} rows with bad times, we will use prior time'.format( n_bad_rows ) )
+    badtimes_idx = df_in[df_in['Time'].isna()].index;
+    if(0 in badtimes_idx):
+        # for the bad timestamps, assume the time from the line immediately preceeding
+        # note, this will fail if the very first line in the file had a bad time. For that, we'll catch and substitute the NEXT time
+        print('file',file,'had a bad time in first row, use the next'.format( n_bad_rows ) )
+        # replace the first index value of 0 with 2
+        idxvals = badtimes_idx.values;
+        idxvals[0] = 2;
+        badtimes_idx = pd.Index(idxvals);
+    df_in.loc[badtimes_idx,'Time'] = df_in.loc[badtimes_idx-1,'Time']
 
     #label with run and unit
     run = file[:-4]#[file[-9:-4] for x in range(len(df_in))] # can cheat because didn't end up making a 10th run
@@ -118,7 +134,7 @@ def scanALogfile(filepath, unit='nounit', expname='noexp'):
     #df_list.append(df_in) #for all runs in one plot
     #df_list_all_folders.append(df_in) #for all runs in one plot
 
-    print('Done loading log {:s}'.format(os.path.basename(file)))
+    #print('Done loading log {:s}'.format(os.path.basename(file)))
     return (df_in,df_events);
 
 
@@ -128,9 +144,14 @@ def scanAUnitFolder(unitfolder):
 
     #open each logfile and import into Pandas df
     folders = [ name for name in os.listdir(unitfolder) if os.path.isdir(os.path.join(unitfolder, name)) ]
-    #drop any folders named "_ignore"
-    if('_ignore' in folders):
-        folders.remove('_ignore');
+
+    #drop any folders with names we don't like such as "archive" or "_ignore"
+    #badfolders = ['_ignore','archive','LowerStallThreshold','IssueLogs'];
+    #badfolders = ['_ignore','archive'];
+    # this is set a module-level
+    for badfolder in badfolders:        
+        if(badfolder in folders):
+            folders.remove(badfolder);
     print(folders);
 
     if( ('config' in folders) and ('logs' in folders)):
@@ -141,6 +162,19 @@ def scanAUnitFolder(unitfolder):
         config_file = [f for f in (Path(unitfolder)/'config').iterdir() if (f.name.startswith('config_') and f.name.endswith('txt'))][0]
         with open(config_file, 'r') as f:
             config_string = f.read()
+    elif( ('logs' in folders) ):
+        # we are pointed towards a single-device run
+        folders = ['logs'];
+
+        # there is not config files
+
+        # # go ahead and load the config!
+        # config_file = [f for f in (Path(unitfolder)/'config').iterdir() if (f.name.startswith('config_') and f.name.endswith('txt'))][0]
+        # with open(config_file, 'r') as f:
+        #     config_string = f.read()
+        config_string = '';
+        config_file = 'noconfigfile';
+
     elif(len(folders)==0):
         # there were no folders in the unit folder
 
@@ -149,6 +183,7 @@ def scanAUnitFolder(unitfolder):
         config_file = 'noconfigfile';
         folders = ['.']
     else:
+        print('Badfolders',badfolders);
         raise RuntimeError("Folder not in expected format")
 
     
@@ -285,3 +320,41 @@ def processRootFolder(
         dfraw = processADirectory( dirpath=(rootpath/exp).as_posix() );
         dfs_collected.append(dfraw);
     return pd.concat(dfs_collected);
+
+
+def getFilesByExpUnitRun(
+        rootpath = r'C:\Users\SimonGhionea\Global Health Labs, Inc\NAATOS Product Feasibility - General - Internal - Electronic Control Module\Beta design\SamplePrepTestData\by_exp',
+        #experiments_to_plot = [ '20250123_3.0_ghlhack_1b']
+        experiment='20250404_PM_fromDX',
+        unit='Unit 20',
+        run='sample_03-28-25_162713',
+    ):
+    # print('Processing rootfolder',rootpath);
+    # dfs_collected = [];
+    # for exp in experiments_to_plot:
+    #     print('Experiment',exp);
+        
+    #     dfraw = processADirectory( dirpath=(rootpath/exp).as_posix() );
+    #     dfs_collected.append(dfraw);
+    # return pd.concat(dfs_collected);
+    folder=(Path(rootpath)/experiment)/unit;
+    
+    return_logfile = (None,None);
+    if( (folder/'logs').exists() ):
+        logfolder = folder/'logs';
+        logfilename = logfolder/(run+'.csv');
+        if( logfilename.exists() ):
+            with open(logfilename, 'r') as f:
+                return_logfile = ( logfilename,    f.read());
+    else:
+        logfolder = folder;
+        logfilename = logfolder/(run+'.csv');
+        if( logfilename.exists() ):
+            with open(logfilename, 'r') as f:
+                return_logfile = ( logfilename,    f.read());
+
+    
+    # TODO: also get config file info
+    return_configfiles = (None,None);
+    
+    return (return_logfile, return_configfiles);
