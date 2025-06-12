@@ -13,12 +13,22 @@ def mkplot_devicerun_detail(dfplot,dfbuilt):
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     dfplot['tracelabel'] = dfplot.apply(lambda x: '{:s}_{:s}'.format(x['unit'],x['run'].replace('sample_','')),axis=1);
-    tracenames  = [
-        (('Temps','DegC'),['ValveTemp','AmpTemp','BatteryT']),
-        (('PWMs/Pcnts','%'),['ValvePWM','AmpPWM','Batt']),
-        #(('SOC','%'),['Batt']),
-        (('Volts','Volts'),['BatteryV']),
-    ];
+    if('AmpTemp' in dfplot.columns):
+        # this is a power module device
+        tracenames  = [
+            (('Temps','DegC'),['ValveTemp','AmpTemp','BatteryT']),
+            (('PWMs/Pcnts','%'),['ValvePWM','AmpPWM','Batt']),
+            #(('SOC','%'),['Batt']),
+            (('Volts','Volts'),['BatteryV']),
+        ];
+    else:
+        # this is a sample-prep device sd
+        tracenames  = [
+            (('Temps','DegC'),['HeaterTemp','BatteryT']),
+            (('PWMs/Pcnts','%'),['HeaterPWM','MotorPWM','Battery']),
+            (('Motor','RPM'),['MotorSpeed']),
+            (('Volts','Volts'),['BatteryV']),
+        ];
     facetcol = 'tracelabel';
     xvals = 'runtime';
     nrows = len(tracenames);
@@ -33,7 +43,7 @@ def mkplot_devicerun_detail(dfplot,dfbuilt):
     );
 
     for row,((subplot_title,ylabel),traces) in enumerate(tracenames):
-        
+        print(traces);
         dfmelted = dfplot.melt(
             id_vars=['runtime','tracelabel','run','unit'],
             value_vars=traces,
@@ -71,7 +81,8 @@ def mkplot_devicerun_detail(dfplot,dfbuilt):
                     showarrow=False,
                     row=1,col=cnt+1
                 );
-        if(subplot_title=='Temps'):
+        if(subplot_title=='Temps' and ('AmpTemp' in dfplot.columns)):
+            # for power module...
             # ambient temperature estimation.... take from first value with nonzero runtime
             first_data = dfplot[(dfplot['runtime']<2.0) & (dfplot['runtime']>0)].groupby(facetcol).first()
             for cnt,(grp,firstvals) in enumerate(first_data.iterrows()):
@@ -85,7 +96,7 @@ def mkplot_devicerun_detail(dfplot,dfbuilt):
                             )
         fig.update_yaxes(title=ylabel,row=row+1,col=1)
         #break;
-
+    
     # force to share same x-axis
     #fig.update_traces(xaxis="x{:}".format(len(tracenames)));
 
@@ -123,7 +134,13 @@ def mkplot_devicerun_detail(dfplot,dfbuilt):
                 )
         
         # handle other non-cycle events
-        dfevt = dfplot[(~dfplot['Event'].str.startswith('Cycle')) & (dfplot['Event']!=' ')];
+        #dfevt = dfplot[(~dfplot['Event'].str.startswith('Cycle')) & (dfplot['Event']!=' ')];
+        mask_A = ~(dfplot['Event'].str.startswith('Cycle').convert_dtypes().fillna(False));
+        #print('postA');
+        mask_B = ~(dfplot['Event'].str.startswith(' ').convert_dtypes().fillna(False));
+        dfevt = dfplot[ mask_A &  mask_B ];
+    
+        print('poost');
 
     #fig.update_layout(hovermode="y unified")
     fig.update_xaxes(showspikes=True,spikemode='across');
@@ -132,7 +149,6 @@ def mkplot_devicerun_detail(dfplot,dfbuilt):
     # fig.update_layout(
     #     margin=dict(l=20, r=20, t=20, b=20),
     # )
-
     # set markers and line widths
     fig.update_traces(
         marker=dict(size=4),
